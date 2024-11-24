@@ -1,16 +1,26 @@
-import { Suspense } from "react"
+import { AsyncBoundary } from "@/components/async-boundary"
 import { DrillsClient } from "@/components/drills/drills-client"
-import { DrillsService } from "@/lib/services/drills"
+import { createClient } from "@/lib/supabase/server"
+
+async function getDrills() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("drills")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
 
 export default async function DrillsPage() {
-  // Fetch initial drills server-side
-  const initialDrills = await DrillsService.getDrills()
+  const initialDrills = await getDrills()
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<div>Loading...</div>}>
+      <AsyncBoundary>
         <DrillsClient initialDrills={initialDrills} />
-      </Suspense>
+      </AsyncBoundary>
     </div>
   )
 }

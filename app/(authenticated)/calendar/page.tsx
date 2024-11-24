@@ -1,12 +1,12 @@
 import { Suspense } from "react"
 import { CalendarView } from "@/components/calendar/calendar-view"
-import { PracticePlansService } from "@/lib/services/practice-plans"
-import { TeamsService } from "@/lib/services/teams"
+import { getPracticePlans } from "@/lib/services/practice-plans-server"
+import { getTeams } from "@/lib/services/teams-server"
 
 export default async function CalendarPage() {
   const [plans, teams] = await Promise.all([
-    PracticePlansService.getPracticePlans(),
-    TeamsService.getTeams(),
+    getPracticePlans(),
+    getTeams(),
   ])
 
   return (

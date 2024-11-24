@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { EditDrillDialog } from "@/components/drills/edit-drill-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { DrillsService, type Drill } from "@/lib/services/drills"
+import type { Drill } from "@/lib/services/drills"
 
 interface DrillCardProps {
   drill: Drill
@@ -42,7 +42,11 @@ export function DrillCard({ drill, onDrillUpdated }: DrillCardProps) {
 
   const handleDelete = async () => {
     try {
-      await DrillsService.deleteDrill(drill.id)
+      const response = await fetch(`/api/drills?id=${drill.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) throw new Error("Failed to delete drill")
 
       toast({
         title: "Success",

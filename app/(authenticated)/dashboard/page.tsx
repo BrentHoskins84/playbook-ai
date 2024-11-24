@@ -4,17 +4,17 @@ import { createClient } from "@/lib/supabase/server"
 
 async function getStats() {
   const supabase = createClient()
-  
-  const [drillsCount, teamsCount, plansCount] = await Promise.all([
-    supabase.from("drills").count(),
-    supabase.from("teams").count(),
-    supabase.from("practice_plans").count(),
+
+  const [drillsResult, teamsResult, plansResult] = await Promise.all([
+    supabase.from("drills").select("*", { count: 'exact', head: true }),
+    supabase.from("teams").select("*", { count: 'exact', head: true }),
+    supabase.from("practice_plans").select("*", { count: 'exact', head: true }),
   ])
 
   return {
-    drills: drillsCount.count || 0,
-    teams: teamsCount.count || 0,
-    plans: plansCount.count || 0,
+    drills: drillsResult.count || 0,
+    teams: teamsResult.count || 0,
+    plans: plansResult.count || 0,
   }
 }
 
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Dashboard</h1>
-      
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

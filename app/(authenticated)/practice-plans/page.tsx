@@ -1,19 +1,19 @@
-import { Suspense } from "react"
+import { AsyncBoundary } from "@/components/async-boundary"
 import { PracticePlansClient } from "@/components/practice-plans/practice-plans-client"
-import { PracticePlansService } from "@/lib/services/practice-plans"
-import { TeamsService } from "@/lib/services/teams"
+import { getPracticePlans } from "@/lib/services/practice-plans-server"
+import { getTeams } from "@/lib/services/teams-server"
 
 export default async function PracticePlansPage() {
   const [initialPlans, teams] = await Promise.all([
-    PracticePlansService.getPracticePlans(),
-    TeamsService.getTeams(),
+    getPracticePlans(),
+    getTeams(),
   ])
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<div>Loading...</div>}>
+      <AsyncBoundary>
         <PracticePlansClient initialPlans={initialPlans} teams={teams} />
-      </Suspense>
+      </AsyncBoundary>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import interactionPlugin from "@fullcalendar/interaction"
 import { CreatePracticePlanDialog } from "@/components/practice-plans/create-practice-plan-dialog"
+import { AsyncBoundary } from "@/components/async-boundary"
 import type { PracticePlan } from "@/lib/services/practice-plans"
 import type { Team } from "@/lib/services/teams"
 
@@ -20,19 +21,22 @@ export function CalendarView({ initialPlans, teams }: CalendarViewProps) {
   const [events, setEvents] = useState<any[]>([])
 
   useEffect(() => {
-    // Convert practice plans to FullCalendar events
-    const calendarEvents = initialPlans.map(plan => ({
-      id: plan.id,
-      title: `${plan.team.name} (${plan.duration}min)`,
-      start: plan.date,
-      extendedProps: {
-        teamName: plan.team.name,
-        duration: plan.duration,
-        focusAreas: plan.focus_areas,
-        notes: plan.notes
-      }
-    }))
-    setEvents(calendarEvents)
+    try {
+      const calendarEvents = initialPlans.map(plan => ({
+        id: plan.id,
+        title: `${plan.team.name} (${plan.duration}min)`,
+        start: plan.date,
+        extendedProps: {
+          teamName: plan.team.name,
+          duration: plan.duration,
+          focusAreas: plan.focus_areas,
+          notes: plan.notes
+        }
+      }))
+      setEvents(calendarEvents)
+    } catch (error) {
+      console.error("Error processing calendar events:", error)
+    }
   }, [initialPlans])
 
   const handleDateClick = (arg: any) => {
@@ -41,12 +45,11 @@ export function CalendarView({ initialPlans, teams }: CalendarViewProps) {
   }
 
   const handleEventClick = (arg: any) => {
-    // You can implement event click handling here
-    // For example, show event details or edit dialog
+    // Event click handling
   }
 
   return (
-    <>
+    <AsyncBoundary>
       <div className="bg-background rounded-lg shadow p-4">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -84,6 +87,6 @@ export function CalendarView({ initialPlans, teams }: CalendarViewProps) {
         teams={teams}
         defaultDate={selectedDate}
       />
-    </>
+    </AsyncBoundary>
   )
 }

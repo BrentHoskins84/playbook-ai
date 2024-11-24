@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { DrillsService, DrillSchema, skillFocusOptions, skillLevelOptions } from "@/lib/services/drills"
+import { DrillSchema, skillFocusOptions, skillLevelOptions } from "@/lib/services/drills"
 
 interface CreateDrillDialogProps {
   open: boolean
@@ -49,7 +49,15 @@ export function CreateDrillDialog({ open, onOpenChange }: CreateDrillDialogProps
 
   async function onSubmit(values: any) {
     try {
-      await DrillsService.createDrill(values)
+      const response = await fetch("/api/drills", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) throw new Error("Failed to create drill")
 
       toast({
         title: "Success",

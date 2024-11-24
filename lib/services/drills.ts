@@ -1,5 +1,4 @@
-import { createClient as createServerClient } from "@/lib/supabase/server"
-import { createClient as createBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { z } from "zod"
 
 export const DrillSchema = z.object({
@@ -36,93 +35,78 @@ export const skillLevelOptions = [
 ] as const
 
 export class DrillsService {
-  // Server-side methods
   static async getDrills(search?: string, skillFocus?: string) {
-    const supabase = createServerClient()
-    let query = supabase
-      .from("drills")
-      .select("*")
-      .order("created_at", { ascending: false })
+    try {
+      const supabase = createClient()
+      let query = supabase
+        .from("drills")
+        .select("*")
+        .order("created_at", { ascending: false })
 
-    if (search) {
-      query = query.ilike("name", `%${search}%`)
+      if (search) {
+        query = query.ilike("name", `%${search}%`)
+      }
+
+      if (skillFocus) {
+        query = query.eq("skill_focus", skillFocus)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data as Drill[]
+    } catch (error) {
+      console.error("Error fetching drills:", error)
+      throw new Error("Failed to fetch drills")
     }
-
-    if (skillFocus) {
-      query = query.eq("skill_focus", skillFocus)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return data as Drill[]
   }
 
-  static async getDrillById(id: string) {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
-      .from("drills")
-      .select("*")
-      .eq("id", id)
-      .single()
-
-    if (error) throw error
-    return data as Drill
-  }
-
-  // Client-side methods
   static async createDrill(drill: CreateDrillInput) {
-    const supabase = createBrowserClient()
-    const { data, error } = await supabase
-      .from("drills")
-      .insert([drill])
-      .select()
-      .single()
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("drills")
+        .insert([drill])
+        .select()
+        .single()
 
-    if (error) throw error
-    return data as Drill
+      if (error) throw error
+      return data as Drill
+    } catch (error) {
+      console.error("Error creating drill:", error)
+      throw new Error("Failed to create drill")
+    }
   }
 
   static async updateDrill(id: string, drill: UpdateDrillInput) {
-    const supabase = createBrowserClient()
-    const { data, error } = await supabase
-      .from("drills")
-      .update(drill)
-      .eq("id", id)
-      .select()
-      .single()
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("drills")
+        .update(drill)
+        .eq("id", id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data as Drill
+      if (error) throw error
+      return data as Drill
+    } catch (error) {
+      console.error("Error updating drill:", error)
+      throw new Error("Failed to update drill")
+    }
   }
 
   static async deleteDrill(id: string) {
-    const supabase = createBrowserClient()
-    const { error } = await supabase
-      .from("drills")
-      .delete()
-      .eq("id", id)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("drills")
+        .delete()
+        .eq("id", id)
 
-    if (error) throw error
-  }
-
-  // Search and filter methods
-  static async searchDrills(search: string, skillFocus?: string) {
-    const supabase = createBrowserClient()
-    let query = supabase
-      .from("drills")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (search) {
-      query = query.ilike("name", `%${search}%`)
+      if (error) throw error
+    } catch (error) {
+      console.error("Error deleting drill:", error)
+      throw new Error("Failed to delete drill")
     }
-
-    if (skillFocus) {
-      query = query.eq("skill_focus", skillFocus)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return data as Drill[]
   }
 }

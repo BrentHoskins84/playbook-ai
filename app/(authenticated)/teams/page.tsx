@@ -1,15 +1,15 @@
-import { Suspense } from "react"
+import { AsyncBoundary } from "@/components/async-boundary"
 import { TeamsClient } from "@/components/teams/teams-client"
-import { TeamsService } from "@/lib/services/teams"
+import { getTeams } from "@/lib/services/teams-server"
 
 export default async function TeamsPage() {
-  const initialTeams = await TeamsService.getTeams()
+  const initialTeams = await getTeams()
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<div>Loading...</div>}>
+      <AsyncBoundary>
         <TeamsClient initialTeams={initialTeams} />
-      </Suspense>
+      </AsyncBoundary>
     </div>
   )
 }

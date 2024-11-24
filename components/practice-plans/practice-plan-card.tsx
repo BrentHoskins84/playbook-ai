@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { MoreVertical, Edit, Trash, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,15 +60,20 @@ export function PracticePlanCard({ plan, onPlanUpdated }: PracticePlanCardProps)
     }
   }
 
+  // Calculate duration in minutes
+  const duration = plan.start_time && plan.end_time
+    ? (new Date(plan.end_time).getTime() - new Date(plan.start_time).getTime()) / (1000 * 60)
+    : 0
+
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>{plan.team.name}</CardTitle>
+              <CardTitle>{plan.team.team_name}</CardTitle>
               <CardDescription>
-                {format(new Date(plan.date), "PPP")}
+                {format(parseISO(plan.start_time), "PPP")}
               </CardDescription>
             </div>
             <DropdownMenu>
@@ -96,29 +101,25 @@ export function PracticePlanCard({ plan, onPlanUpdated }: PracticePlanCardProps)
         <CardContent>
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>{plan.duration} minutes</span>
+            <span>{duration} minutes</span>
           </div>
-          <div className="mt-2">
-            <p className="text-sm">
-              <strong>Focus Areas:</strong>{" "}
-              {plan.focus_areas.join(", ")}
-            </p>
-          </div>
-          {plan.notes && (
+          {plan.goals && (
             <p className="text-sm mt-2">
-              <strong>Notes:</strong> {plan.notes}
+              <strong>Goals:</strong> {plan.goals}
             </p>
           )}
-          <div className="mt-4">
-            <strong className="text-sm">Drills:</strong>
-            <ul className="mt-2 space-y-2">
-              {plan.drills.map((drill, index) => (
-                <li key={index} className="text-sm">
-                  {drill.notes} ({drill.duration} min)
-                </li>
-              ))}
-            </ul>
-          </div>
+          {plan.generated_plan?.drills && (
+            <div className="mt-4">
+              <strong className="text-sm">Drills:</strong>
+              <ul className="mt-2 space-y-2">
+                {plan.generated_plan.drills.map((drillId, index) => (
+                  <li key={drillId} className="text-sm">
+                    Drill {index + 1}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 

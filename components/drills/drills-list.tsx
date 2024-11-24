@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DrillsService, type Drill, skillFocusOptions } from "@/lib/services/drills"
+import type { Drill } from "@/lib/services/drills"
+import { skillFocusOptions } from "@/lib/services/drills"
 
 interface DrillsListProps {
   initialDrills: Drill[]
@@ -21,13 +22,18 @@ export function DrillsList({ initialDrills }: DrillsListProps) {
   const [drills, setDrills] = useState<Drill[]>(initialDrills)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
-  const [skillFocus, setSkillFocus] = useState<string>("")
+  const [skillFocus, setSkillFocus] = useState<string>("all") // Changed default value
 
   useEffect(() => {
     const fetchDrills = async () => {
       try {
         setLoading(true)
-        const data = await DrillsService.searchDrills(search, skillFocus)
+        const params = new URLSearchParams()
+        if (search) params.append("search", search)
+        if (skillFocus && skillFocus !== "all") params.append("skillFocus", skillFocus)
+
+        const response = await fetch(`/api/drills?${params}`)
+        const data = await response.json()
         setDrills(data)
       } catch (error) {
         console.error("Error fetching drills:", error)
@@ -53,7 +59,7 @@ export function DrillsList({ initialDrills }: DrillsListProps) {
             <SelectValue placeholder="Skill Focus" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Skills</SelectItem>
+            <SelectItem value="all">All Skills</SelectItem>
             {skillFocusOptions.map((skill) => (
               <SelectItem key={skill} value={skill}>
                 {skill}
@@ -72,13 +78,14 @@ export function DrillsList({ initialDrills }: DrillsListProps) {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {drills.map((drill) => (
-            <DrillCard 
-              key={drill.id} 
-              drill={drill} 
+            <DrillCard
+              key={drill.id}
+              drill={drill}
               onDrillUpdated={async () => {
-                const updatedDrills = await DrillsService.searchDrills(search, skillFocus)
-                setDrills(updatedDrills)
-              }} 
+                const response = await fetch("/api/drills")
+                const data = await response.json()
+                setDrills(data)
+              }}
             />
           ))}
         </div>

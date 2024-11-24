@@ -1,9 +1,7 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { createClient } from "@/lib/supabase/client"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -29,31 +27,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import type { Drill } from "./drills-list"
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  skill_focus: z.string().min(1, "Please select a skill focus"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  skill_level: z.string().optional(),
-  equipment: z.string().optional(),
-})
-
-const skillFocusOptions = [
-  "Fielding",
-  "Batting",
-  "Pitching",
-  "Baserunning",
-  "Catching",
-  "Conditioning",
-]
-
-const skillLevelOptions = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "All Levels",
-]
+import { DrillSchema, skillFocusOptions, skillLevelOptions, type Drill } from "@/lib/services/drills"
 
 interface EditDrillDialogProps {
   drill: Drill
@@ -69,10 +43,8 @@ export function EditDrillDialog({
   onDrillUpdated,
 }: EditDrillDialogProps) {
   const { toast } = useToast()
-  const supabase = createClient()
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm({
+    resolver: zodResolver(DrillSchema),
     defaultValues: {
       name: drill.name,
       skill_focus: drill.skill_focus,
@@ -82,14 +54,17 @@ export function EditDrillDialog({
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: any) {
     try {
-      const { error } = await supabase
-        .from("drills")
-        .update(values)
-        .eq("id", drill.id)
+      const response = await fetch("/api/drills", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: drill.id, ...values }),
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error("Failed to update drill")
 
       toast({
         title: "Success",

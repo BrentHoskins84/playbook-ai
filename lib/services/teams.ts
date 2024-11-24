@@ -1,5 +1,4 @@
-import { createClient as createServerClient } from "@/lib/supabase/server"
-import { createClient as createBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { z } from "zod"
 
 export const TeamSchema = z.object({
@@ -36,39 +35,10 @@ export const daysOfWeek = [
   "Sunday",
 ] as const
 
+// Client-side methods
 export class TeamsService {
-  // Server-side methods
-  static async getTeams(search?: string) {
-    const supabase = createServerClient()
-    let query = supabase
-      .from("teams")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (search) {
-      query = query.ilike("name", `%${search}%`)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return data as Team[]
-  }
-
-  static async getTeamById(id: string) {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
-      .from("teams")
-      .select("*")
-      .eq("id", id)
-      .single()
-
-    if (error) throw error
-    return data as Team
-  }
-
-  // Client-side methods
   static async createTeam(team: CreateTeamInput) {
-    const supabase = createBrowserClient()
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("teams")
       .insert([team])
@@ -80,7 +50,7 @@ export class TeamsService {
   }
 
   static async updateTeam(id: string, team: UpdateTeamInput) {
-    const supabase = createBrowserClient()
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("teams")
       .update(team)
@@ -93,7 +63,7 @@ export class TeamsService {
   }
 
   static async deleteTeam(id: string) {
-    const supabase = createBrowserClient()
+    const supabase = createClient()
     const { error } = await supabase
       .from("teams")
       .delete()
@@ -104,7 +74,7 @@ export class TeamsService {
 
   // Search method
   static async searchTeams(search: string) {
-    const supabase = createBrowserClient()
+    const supabase = createClient()
     let query = supabase
       .from("teams")
       .select("*")

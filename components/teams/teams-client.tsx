@@ -5,6 +5,7 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TeamsList } from "@/components/teams/teams-list"
 import { CreateTeamDialog } from "@/components/teams/create-team-dialog"
+import { AsyncBoundary } from "@/components/async-boundary"
 import type { Team } from "@/lib/services/teams"
 
 interface TeamsClientProps {
@@ -24,7 +25,9 @@ export function TeamsClient({ initialTeams }: TeamsClientProps) {
         </Button>
       </div>
 
-      <TeamsList initialTeams={initialTeams} />
+      <AsyncBoundary>
+        <TeamsList initialTeams={initialTeams} />
+      </AsyncBoundary>
       <CreateTeamDialog open={open} onOpenChange={setOpen} />
     </>
   )

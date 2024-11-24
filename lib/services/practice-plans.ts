@@ -1,28 +1,33 @@
-import { createClient as createServerClient } from "@/lib/supabase/server"
-import { createClient as createBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { z } from "zod"
 
 export const PracticePlanSchema = z.object({
   team_id: z.string().min(1, "Please select a team"),
-  date: z.string(),
-  duration: z.number().min(30, "Practice must be at least 30 minutes"),
-  focus_areas: z.array(z.string()).min(1, "Select at least one focus area"),
-  notes: z.string().optional(),
-  drills: z.array(z.object({
-    drill_id: z.string(),
-    duration: z.number(),
-    order: z.number(),
-    notes: z.string().optional(),
-  })),
+  goals: z.string().optional(),
+  start_time: z.string(),
+  end_time: z.string(),
+  generated_plan: z.object({
+    drills: z.array(z.string())
+  }).optional(),
+  status: z.enum(["draft", "final"]).default("draft"),
 })
 
-export type PracticePlan = z.infer<typeof PracticePlanSchema> & {
+export type PracticePlan = {
   id: string
-  created_by: string
+  team_id: string
+  goals?: string
+  start_time: string
+  end_time: string
+  generated_plan?: {
+    drills: string[]
+  }
+  status: "draft" | "final"
+  last_modified: string
   created_at: string
   team: {
-    name: string
-    level: string
+    id: string
+    team_name: string
+    team_level: string
   }
 }
 
@@ -30,129 +35,104 @@ export type CreatePracticePlanInput = z.infer<typeof PracticePlanSchema>
 export type UpdatePracticePlanInput = Partial<CreatePracticePlanInput>
 
 export const focusAreaOptions = [
-  "Hitting",
   "Fielding",
+  "Batting",
   "Pitching",
-  "Base Running",
-  "Team Defense",
-  "Game Situations",
+  "Baserunning",
+  "Catching",
   "Conditioning",
+  "Team Defense",
+  "Situational Play",
 ] as const
 
-export class PracticePlansService {
-  // Server-side methods
-  static async getPracticePlans(teamId?: string, startDate?: string, endDate?: string) {
-    const supabase = createServerClient()
-    let query = supabase
-      .from("practice_plans")
-      .select(`
-        *,
-        team:teams(name, level)
-      `)
-      .order("date", { ascending: true })
-
-    if (teamId) {
-      query = query.eq("team_id", teamId)
-    }
-
-    if (startDate) {
-      query = query.gte("date", startDate)
-    }
-
-    if (endDate) {
-      query = query.lte("date", endDate)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return data as PracticePlan[]
-  }
-
-  static async getPracticePlanById(id: string) {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
-      .from("practice_plans")
-      .select(`
-        *,
-        team:teams(name, level)
-      `)
-      .eq("id", id)
-      .single()
-
-    if (error) throw error
-    return data as PracticePlan
-  }
-
-  // Client-side methods
-  static async createPracticePlan(plan: CreatePracticePlanInput) {
-    const supabase = createBrowserClient()
+// Client-side methods
+export const PracticePlansService = {
+  async createPracticePlan(plan: CreatePracticePlanInput) {
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("practice_plans")
       .insert([plan])
       .select(`
         *,
-        team:teams(name, level)
+        team:teams(id, team_name, team_level)
       `)
       .single()
 
     if (error) throw error
     return data as PracticePlan
-  }
+  },
 
-  static async updatePracticePlan(id: string, plan: UpdatePracticePlanInput) {
-    const supabase = createBrowserClient()
+  async updatePracticePlan(id: string, plan: UpdatePracticePlanInput) {
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("practice_plans")
       .update(plan)
       .eq("id", id)
       .select(`
         *,
-        team:teams(name, level)
+        team:teams(id, team_name, team_level)
       `)
       .single()
 
     if (error) throw error
     return data as PracticePlan
-  }
+  },
 
-  static async deletePracticePlan(id: string) {
-    const supabase = createBrowserClient()
+  async deletePracticePlan(id: string) {
+    const supabase = createClient()
     const { error } = await supabase
       .from("practice_plans")
       .delete()
       .eq("id", id)
 
     if (error) throw error
-  }
+  },
+
+  async getPracticePlans(teamId?: string, startDate?: string, endDate?: string) {
+    const supabase = createClient()
+    let query = supabase
+      .from("practice_plans")
+      .select(`
+        *,
+        team:teams(id, team_name, team_level)
+      `)
+      .order("start_time", { ascending: true })
+
+    if (teamId) {
+      query = query.eq("team_id", teamId)
+    }
+
+    if (startDate) {
+      query = query.gte("start_time", startDate)
+    }
+
+    if (endDate) {
+      query = query.lte("end_time", endDate)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data as PracticePlan[]
+  },
 
   // AI Plan Generation
-  static async generatePracticePlan(input: {
+  async generatePracticePlan(input: {
     team_id: string
-    date: string
-    duration: number
-    focus_areas: string[]
-    previous_plans?: PracticePlan[]
+    start_time: string
+    end_time: string
+    goals?: string
   }) {
     // Here you would integrate with your AI service
     // For now, we'll return a simple template
-    const drillsPerFocus = Math.floor(input.duration / (input.focus_areas.length * 15))
-    
-    const drills = input.focus_areas.flatMap((focus, focusIndex) => {
-      return Array.from({ length: drillsPerFocus }, (_, index) => ({
-        drill_id: `generated-${focus}-${index}`,
-        duration: 15,
-        order: focusIndex * drillsPerFocus + index,
-        notes: `${focus} drill ${index + 1}`,
-      }))
-    })
-
     return {
       team_id: input.team_id,
-      date: input.date,
-      duration: input.duration,
-      focus_areas: input.focus_areas,
-      drills,
-      notes: "AI-generated practice plan",
+      start_time: input.start_time,
+      end_time: input.end_time,
+      goals: input.goals,
+      generated_plan: {
+        drills: ["drill-1", "drill-2", "drill-3"] // Example drill IDs
+      },
+      status: "draft" as const
     }
   }
 }
