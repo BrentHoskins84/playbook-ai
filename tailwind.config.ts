@@ -6,7 +6,7 @@ module.exports = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-	],
+  ],
   theme: {
     container: {
       center: true,
@@ -50,6 +50,12 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Custom colors based on the development plan
+        "dark-gray": "#1A2229",
+        "mid-gray": "#485864",
+        "light-gray": "#636363",
+        "red": "#E8323D",
+        "light-blue": "#5AB9CA",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -74,3 +80,4 @@ module.exports = {
   },
   plugins: [require("tailwindcss-animate")],
 }
+

@@ -4,15 +4,21 @@ import { z } from "zod"
 export const DrillSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   skill_focus: z.string().min(1, "Please select a skill focus"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  brief_description: z.string().min(10, "Description must be at least 10 characters"),
+  positions_applicable: z.array(z.string()).optional(),
   skill_level: z.string().optional(),
-  equipment: z.string().optional(),
+  equipment_needed: z.string().optional(),
+  reference_link: z.string().url().optional().or(z.literal('')),
+  source_notes: z.string().optional(),
+  detailed_instructions: z.string().optional(),
+  coaching_tips: z.string().optional(),
 })
 
 export type Drill = z.infer<typeof DrillSchema> & {
   id: string
-  created_by: string
+  created_by: string | null
   created_at: string
+  updated_at: string
 }
 
 export type CreateDrillInput = z.infer<typeof DrillSchema>
@@ -32,6 +38,14 @@ export const skillLevelOptions = [
   "Intermediate",
   "Advanced",
   "All Levels",
+] as const
+
+export const positionOptions = [
+  { id: "infield", label: "Infield" },
+  { id: "outfield", label: "Outfield" },
+  { id: "pitcher", label: "Pitcher" },
+  { id: "catcher", label: "Catcher" },
+  { id: "all", label: "All Positions" },
 ] as const
 
 export class DrillsService {

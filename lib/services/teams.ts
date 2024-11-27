@@ -11,6 +11,7 @@ export const TeamSchema = z.object({
 
 export type Team = z.infer<typeof TeamSchema> & {
   id: string
+  team_name: string
   created_by: string
   created_at: string
 }

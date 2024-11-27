@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -16,6 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import {
@@ -26,8 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { DrillSchema, skillFocusOptions, skillLevelOptions } from "@/lib/services/drills"
+import { DrillSchema, skillFocusOptions, skillLevelOptions, positionOptions } from "@/lib/services/drills"
+import { useState } from "react"
 
 interface CreateDrillDialogProps {
   open: boolean
@@ -36,14 +41,20 @@ interface CreateDrillDialogProps {
 
 export function CreateDrillDialog({ open, onOpenChange }: CreateDrillDialogProps) {
   const { toast } = useToast()
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const form = useForm({
     resolver: zodResolver(DrillSchema),
     defaultValues: {
       name: "",
       skill_focus: "",
-      description: "",
+      brief_description: "",
+      positions_applicable: [],
       skill_level: "",
-      equipment: "",
+      equipment_needed: "",
+      reference_link: "",
+      source_notes: "",
+      detailed_instructions: "",
+      coaching_tips: "",
     },
   })
 
@@ -78,112 +89,241 @@ export function CreateDrillDialog({ open, onOpenChange }: CreateDrillDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Create New Drill</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ground Ball Rapid Fire" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="skill_focus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Skill Focus</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a skill focus" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {skillFocusOptions.map((skill) => (
-                        <SelectItem key={skill} value={skill}>
-                          {skill}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe the drill and its objectives..."
-                      {...field}
+            <ScrollArea className="h-[80vh] pr-4">
+              <div className="space-y-4 px-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Drill Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ground Ball Rapid Fire" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="skill_focus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Skill Focus</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a skill focus" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {skillFocusOptions.map((skill) => (
+                              <SelectItem key={skill} value={skill}>
+                                {skill}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="brief_description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Brief Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Short, clear explanation of the drill..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="positions_applicable"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Positions Applicable</FormLabel>
+                        <div className="space-y-2">
+                          {positionOptions.map((position) => (
+                            <FormField
+                              key={position.id}
+                              control={form.control}
+                              name="positions_applicable"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={position.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(position.id)}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, position.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                  (value) => value !== position.id
+                                                )
+                                              )
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                      {position.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="skill_level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Skill Level</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a skill level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {skillLevelOptions.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {level}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="equipment_needed"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Equipment Needed</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Balls, gloves, cones..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>Optional</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="reference_link"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reference Link</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/drill-video"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>Optional: Add link to original video/post</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="source_notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Source Notes</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Coach Smith's clinic, USA Softball conference..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>Optional</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                >
+                  {showAdvanced ? "Hide" : "Show"} Advanced Options
+                </Button>
+                {showAdvanced && (
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="detailed_instructions"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Detailed Instructions</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Step-by-step instructions for the drill..."
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="skill_level"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Skill Level</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a skill level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {skillLevelOptions.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="equipment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Equipment Needed</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Balls, gloves, cones..."
-                      {...field}
+                    <FormField
+                      control={form.control}
+                      name="coaching_tips"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Coaching Tips</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Additional tips and advice for coaches..."
+                              className="mb-4"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-4">
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -192,7 +332,7 @@ export function CreateDrillDialog({ open, onOpenChange }: CreateDrillDialogProps
                 Cancel
               </Button>
               <Button type="submit">Create Drill</Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

@@ -23,7 +23,12 @@ import Link from "next/link"
 const formSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  name: z.string().min(2),
+  confirmPassword: z.string().min(6),
+  fullName: z.string().min(2),
+  teamName: z.string().min(2),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 })
 
 export default function SignUp() {
@@ -36,7 +41,9 @@ export default function SignUp() {
     defaultValues: {
       email: "",
       password: "",
-      name: "",
+      confirmPassword: "",
+      fullName: "",
+      teamName: "",
     },
   })
 
@@ -45,42 +52,46 @@ export default function SignUp() {
       setIsLoading(true)
       const supabase = createClient()
 
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
           data: {
-            name: values.name,
+            full_name: values.fullName,
+            team_name: values.teamName,
+            role: 'coach',
+            is_active: false
           },
         },
       })
 
-      if (error) {
-        throw error
-      }
+      if (authError) throw authError
 
       toast({
-        title: "Success",
-        description: "Please check your email to verify your account.",
+        title: "Registration Successful",
+        description: "Your account is pending approval. You'll be notified once it's approved.",
       })
 
       router.push("/auth/signin")
     } catch (error) {
+      console.error('Registration error:', error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: "Something went wrong during registration. Please try again.",
       })
     } finally {
       setIsLoading(false)
     }
   }
 
+
+
   return (
     <div className="container flex items-center justify-center min-h-screen py-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create an Account</CardTitle>
+          <CardTitle>Create a Coach Account</CardTitle>
           <CardDescription>Sign up to start planning your practices</CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,10 +99,10 @@ export default function SignUp() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="name"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Full Name</FormLabel>
                     <FormControl>
                       <Input placeholder="John Smith" {...field} />
                     </FormControl>
@@ -120,6 +131,32 @@ export default function SignUp() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="teamName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Team Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Thunderbolts" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
