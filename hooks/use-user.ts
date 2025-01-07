@@ -22,6 +22,8 @@ export function useUser() {
         data: { user },
       } = await supabase.auth.getUser();
 
+      console.log("User(use-user.ts:25):", user);
+
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -29,17 +31,23 @@ export function useUser() {
           .eq("id", user.id)
           .single();
 
+        console.log("profile(use-user.ts:34):", profile);
+
         const { data: teamMember } = await supabase
           .from("team_members")
           .select("role")
           .eq("user_id", user.id)
           .single();
 
+        console.log("teamMember(use-user.ts:42):", teamMember);
+
         const extendedUser: ExtendedUser = {
           ...user,
           isAdmin: profile?.is_admin || false,
           isCoach: !!teamMember?.role,
         };
+
+        console.log("extendedUser(use-user.ts:49):", extendedUser);
 
         setUser(extendedUser);
       } else {

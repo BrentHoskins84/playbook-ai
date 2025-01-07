@@ -1,3 +1,4 @@
+import { UserProvider } from "@/context/auth-context";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -25,7 +26,7 @@ export default function RootLayout({
           nonce="theme-nonce"
           forcedTheme={undefined}
         >
-          {children}
+          <UserProvider>{children}</UserProvider>
         </ThemeProvider>
       </body>
     </html>

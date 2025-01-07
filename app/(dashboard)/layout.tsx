@@ -1,3 +1,4 @@
+import BackgroundPattern from "@/components/dashboard/background-pattern";
 import { DashboardBreadcrumb } from "@/components/dashboard/header/dashboard-breadcrumb";
 import { DashboardHeaderWrapper } from "@/components/dashboard/header/dashboard-header-wrapper";
 import { DynamicTitle } from "@/components/dashboard/header/dynamic-title";
@@ -28,11 +29,12 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <BackgroundPattern />
       {/* Sidebar */}
       <DashboardNav />
 
       {/* Main Content */}
-      <div className="pl-64">
+      <div className="pl-64 z-10 relative">
         {/* Header */}
         <DashboardHeaderWrapper title={<DynamicTitle />}>
           <DashboardBreadcrumb />

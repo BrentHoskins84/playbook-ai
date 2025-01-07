@@ -182,6 +182,57 @@ export type Database = {
           },
         ];
       };
+      practices: {
+        Row: {
+          coach_id: string;
+          created_at: string | null;
+          end_time: string;
+          goals: string | null;
+          id: string;
+          start_time: string;
+          status: string;
+          team_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          coach_id: string;
+          created_at?: string | null;
+          end_time: string;
+          goals?: string | null;
+          id?: string;
+          start_time: string;
+          status?: string;
+          team_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          coach_id?: string;
+          created_at?: string | null;
+          end_time?: string;
+          goals?: string | null;
+          id?: string;
+          start_time?: string;
+          status?: string;
+          team_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "practices_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "practices_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
