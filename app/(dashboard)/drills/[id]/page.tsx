@@ -1,4 +1,4 @@
-import { DashboardCard } from "@/components/card-wrapper";
+import { CardWrapper } from "@/components/card-wrapper";
 import { ClientDrillActions } from "@/components/drills/client-drill-actions";
 import {
   DrillRow,
@@ -55,7 +55,7 @@ export default async function DrillDetailsPage({
 
     return (
       <div className="container mx-auto px-4 py-8">
-        <DashboardCard title={drill.title} colSpan={4}>
+        <CardWrapper title={drill.title} colSpan={4}>
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold">{drill.title}</h1>
@@ -210,7 +210,7 @@ export default async function DrillDetailsPage({
               </Button>
             </div>
           </div>
-        </DashboardCard>
+        </CardWrapper>
       </div>
     );
   } catch (error) {

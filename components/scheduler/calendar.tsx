@@ -2,55 +2,62 @@
 
 import { getSchedules } from "@/app/(dashboard)/schedule/actions";
 import { useUser } from "@/context/auth-context";
-import moment from "moment";
+import { Tables } from "@/types/supabase";
+import { format, getDay, parse, startOfWeek } from "date-fns";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Calendar,
-  momentLocalizer,
-  NavigateAction,
-  View,
-} from "react-big-calendar";
+import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { CustomMonthView } from "./components/month-view";
+import { CardWrapper } from "../card-wrapper";
+import { Spinner } from "../spinner";
+import { CreateScheduleForm } from "./components/create-schedule-form";
 import { PracticeDetailsModal } from "./components/practice-details-modal";
-import { CustomToolbar } from "./components/toolbar";
-import { CalendarEvent, Schedule } from "./components/types";
-import { CalendarProvider, useCalendar } from "./context/calendar-context";
-import { CreateScheduleForm } from "./create-schedule-form";
-import "./styles/calendar-styles.css";
+import { CalendarEvent } from "./types";
 
-const localizer = momentLocalizer(moment);
+// Date localizer setup
+const locales = {
+  "en-US": require("date-fns/locale/en-US"),
+};
 
-const AVAILABLE_VIEWS = {
-  month: CustomMonthView,
-  week: true,
-  day: true,
-} as const;
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
-type AvailableView = keyof typeof AVAILABLE_VIEWS;
-
-function CalendarContent() {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+// Main Calendar Component
+export default function SchedulerCalendar() {
+  const [schedules, setSchedules] = useState<Tables<"practices">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
-  const [currentView, setCurrentView] = useState<AvailableView>("month");
-  const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Get our calendar context functions
-  const { openEventDetails, openScheduleCreation } = useCalendar();
+  // Modal states
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
+  // Fetch schedules
   const fetchSchedules = useCallback(async () => {
+    console.log("Fetching schedules...");
+    console.log("User:", user);
+
     if (!user) return;
 
     setIsLoading(true);
     try {
       const fetchedSchedules = await getSchedules(user.id);
+      console.log("Fetched schedules:", fetchedSchedules);
+
       setSchedules(fetchedSchedules);
       setError(null);
-    } catch (error) {
+    } catch (err) {
       setError("Failed to fetch schedules");
-      console.error("Error fetching schedules:", error);
+      console.error("Error fetching schedules:", err);
     } finally {
       setIsLoading(false);
     }
@@ -60,81 +67,69 @@ function CalendarContent() {
     fetchSchedules();
   }, [fetchSchedules]);
 
-  // Update slot selection to use our context
-  const handleSelectSlot = useCallback(
-    ({ start }: { start: Date }) => {
-      openScheduleCreation(start);
-    },
-    [openScheduleCreation]
-  );
-
-  const handleNavigate = useCallback(
-    (newDate: Date, view?: View, action?: NavigateAction) => {
-      setCurrentDate(newDate);
-    },
-    []
-  );
-
-  const handleViewChange = useCallback((view: View) => {
-    setCurrentView(view as AvailableView);
+  // Event handlers
+  const handleSelectEvent = useCallback((event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setShowEventDetails(true);
   }, []);
 
+  const handleSelectSlot = useCallback(({ start }: { start: Date }) => {
+    setSelectedDate(start);
+    setShowCreateForm(true);
+  }, []);
+
+  // Transform schedules to calendar events
   const events: CalendarEvent[] = schedules.map((schedule) => ({
     id: schedule.id,
-    title: schedule.goals || "Schedule",
+    title: schedule.goals || "Practice",
     start: new Date(schedule.start_time),
     end: new Date(schedule.end_time),
     goals: schedule.goals,
   }));
 
-  if (isLoading) {
-    return <div className="text-center py-4">Loading schedules...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-4 text-destructive">Error: {error}</div>
-    );
-  }
-
   return (
-    <div className="dashboard-card h-full">
-      <div className="dashboard-card-content h-[calc(100%-4rem)]">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: "100%" }}
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={openEventDetails}
-          selectable
-          className="custom-calendar"
-          views={AVAILABLE_VIEWS}
-          view={currentView}
-          date={currentDate}
-          onView={handleViewChange}
-          onNavigate={handleNavigate}
-          components={{
-            // @ts-ignore
-            toolbar: CustomToolbar,
-            month: {
-              dateHeader: ({ date }) => <span>{moment(date).format("D")}</span>,
-            },
-          }}
-        />
-      </div>
+    <CardWrapper>
+      {isLoading ? (
+        <div className="h-[calc(100vh-12rem)] justify-center items-center flex">
+          <Spinner />
+        </div>
+      ) : error ? (
+        <div className="text-center py-4 text-destructive">{error}</div>
+      ) : (
+        <div className="h-[calc(100vh-12rem)] bg-background">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            onSelectEvent={handleSelectEvent}
+            onSelectSlot={handleSelectSlot}
+            selectable
+            views={["month", "week", "day"]}
+            defaultView="month"
+            className="rounded-lg bg-card text-card-foreground shadow-sm"
+          />
 
-      <CreateScheduleForm onScheduleCreated={fetchSchedules} />
-      <PracticeDetailsModal />
-    </div>
-  );
-}
+          <PracticeDetailsModal
+            event={selectedEvent}
+            isOpen={showEventDetails}
+            onClose={() => {
+              setShowEventDetails(false);
+              setSelectedEvent(null);
+            }}
+          />
 
-export default function ScheduleCalendar() {
-  return (
-    <CalendarProvider>
-      <CalendarContent />
-    </CalendarProvider>
+          <CreateScheduleForm
+            selectedDate={selectedDate}
+            isOpen={showCreateForm}
+            onCloseAction={() => {
+              setShowCreateForm(false);
+              setSelectedDate(null);
+            }}
+            onScheduleCreatedAction={fetchSchedules}
+          />
+        </div>
+      )}
+    </CardWrapper>
   );
 }

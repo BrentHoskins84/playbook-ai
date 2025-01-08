@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type LucideIcon } from "lucide-react";
 
-interface DashboardCardProps {
+interface CardWrapperProps {
   title?: string;
   icon?: LucideIcon;
   className?: string;
@@ -11,14 +11,14 @@ interface DashboardCardProps {
   colSpan?: number;
 }
 
-export function DashboardCard({
+export function CardWrapper({
   title,
   icon: Icon,
   className,
   headerAction,
   children,
   colSpan,
-}: DashboardCardProps) {
+}: CardWrapperProps) {
   return (
     <Card
       className={cn(
@@ -29,7 +29,7 @@ export function DashboardCard({
         className
       )}
     >
-      {(title || Icon || headerAction) && (
+      {title || Icon || headerAction ? (
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
           {title && (
             <CardTitle className="text-xs font-medium tracking-wider dark:text-blue-100/70 light:text-blue-100/70 uppercase">
@@ -39,6 +39,8 @@ export function DashboardCard({
           {headerAction}
           {Icon && <Icon className="h-4 w-4 text-white/40" />}
         </CardHeader>
+      ) : (
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7" />
       )}
       <CardContent>{children}</CardContent>
     </Card>

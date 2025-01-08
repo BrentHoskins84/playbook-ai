@@ -6,22 +6,23 @@ import {
 } from "@/components/ui/dialog";
 import moment from "moment";
 import React from "react";
-import { useCalendar } from "../context/calendar-context";
+import { PracticeDetailsModalProps } from "../types";
 
-export const PracticeDetailsModal: React.FC = () => {
-  const { selectedEvent, isDetailsModalOpen, closeEventDetails } =
-    useCalendar();
+export const PracticeDetailsModal: React.FC<PracticeDetailsModalProps> = ({
+  event,
+  isOpen,
+  onClose,
+}) => {
+  if (!event) return null;
 
-  if (!selectedEvent) return null;
-
-  const startTime = moment(selectedEvent.start).format("MMMM Do YYYY, h:mm a");
-  const endTime = moment(selectedEvent.end).format("h:mm a");
+  const startTime = moment(event.start).format("MMMM Do YYYY, h:mm a");
+  const endTime = moment(event.end).format("h:mm a");
   const duration = moment
-    .duration(moment(selectedEvent.end).diff(moment(selectedEvent.start)))
+    .duration(moment(event.end).diff(moment(event.start)))
     .asMinutes();
 
   return (
-    <Dialog open={isDetailsModalOpen} onOpenChange={closeEventDetails}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Practice Details</DialogTitle>
@@ -38,10 +39,10 @@ export const PracticeDetailsModal: React.FC = () => {
             </p>
           </div>
 
-          {selectedEvent.goals && (
+          {event.goals && (
             <div className="space-y-2">
               <h3 className="font-medium text-sm">Practice Goals</h3>
-              <p className="text-sm">{selectedEvent.goals}</p>
+              <p className="text-sm">{event.goals}</p>
             </div>
           )}
         </div>

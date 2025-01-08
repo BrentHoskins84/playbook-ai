@@ -5,30 +5,35 @@ import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-// Type definitions for our database tables
+// Use existing types from Supabase
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type TeamMember = Database["public"]["Tables"]["team_members"]["Row"];
 type Team = Database["public"]["Tables"]["teams"]["Row"];
 
-// Our extended user type that includes profile and team data
+// Extend the User type with our profile and team data
 export interface ExtendedUser extends User {
-  profile: {
-    id: string;
-    email: string;
-    full_name: string | null;
-    avatar_url: string | null;
-    is_admin: boolean;
-    is_approved: boolean;
-    is_verified: boolean;
-    created_at: string;
-    updated_at: string;
-  };
+  profile: Profile;
   team?: {
     id: string;
     name: string;
     role: string;
     code: string;
     is_active: boolean;
+    head_coach_id: string;
+    age_group: string | null;
+    team_level: string | null;
+    total_players: number | null;
+    active_players: number | null;
+    season_start_date: string | null;
+    season_end_date: string | null;
+    season_goals: Team["season_goals"];
+    skill_focus_areas: Team["skill_focus_areas"];
+    available_equipment: Team["available_equipment"];
+    indoor_facility_access: boolean | null;
+    typical_practice_duration: number | null;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
   };
   isAdmin: boolean;
   isCoach: boolean;
@@ -73,78 +78,36 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
 
   const fetchUserData = async (authUser: User): Promise<ExtendedUser> => {
     try {
-      // Fetch profile and team member data in parallel
-      const [profileResponse, teamMemberResponse] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", authUser.id).single(),
-        supabase
-          .from("team_members")
-          .select(
-            `
-            *,
-            team:teams (
-              id,
-              name,
-              code,
-              is_active
-            )
-          `
-          )
-          .eq("user_id", authUser.id)
-          .single(),
-      ]);
+      const { data, error } = await supabase.rpc("get_user", {
+        input_user_id: authUser.id,
+      });
 
-      if (profileResponse.error) {
-        throw new UserDataError(
-          `Failed to fetch profile: ${profileResponse.error.message}`
-        );
+      if (error) {
+        throw new UserDataError(`Failed to fetch user data: ${error.message}`);
       }
 
-      const profile = profileResponse.data;
-      const teamMember = teamMemberResponse.data;
-
-      const extendedUser: ExtendedUser = {
-        ...authUser,
-        profile: {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
-          is_admin: profile.is_admin ?? false,
-          is_approved: profile.is_approved ?? false,
-          is_verified: profile.is_verified ?? false,
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-        },
-        isAdmin: profile.is_admin ?? false,
-        isCoach: !!teamMember?.role,
-      };
-
-      // Add team information if it exists
-      if (teamMember?.team) {
-        extendedUser.team = {
-          id: teamMember.team.id,
-          name: teamMember.team.name,
-          role: teamMember.role,
-          code: teamMember.team.code,
-          is_active: teamMember.team.is_active ?? false,
-        };
+      if (!data) {
+        throw new UserDataError("User data not found");
       }
 
-      return extendedUser;
+      return data as ExtendedUser;
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      throw error instanceof Error
-        ? error
-        : new Error("Failed to fetch user data");
+      throw new UserDataError(`Failed to fetch user data: ${error}`);
     }
   };
 
   const refreshUser = async (): Promise<void> => {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }));
+
       const {
         data: { user: authUser },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError) {
+        throw new UserDataError(`Auth error: ${authError.message}`);
+      }
 
       if (!authUser) {
         setState({ user: null, loading: false, error: null });
@@ -164,10 +127,8 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
   };
 
   useEffect(() => {
-    // Initial user load
     refreshUser();
 
-    // Subscribe to auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setState((prev) => ({ ...prev, loading: true, error: null }));
@@ -187,7 +148,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
             error:
               error instanceof Error
                 ? error
-                : new Error("Failed to fetch user data"),
+                : new Error("Unknown error occurred"),
           });
         }
       }
@@ -198,7 +159,6 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     };
   }, []);
 
-  // Create the context value object
   const contextValue: UserContextValue = {
     user: state.user,
     loading: state.loading,
@@ -206,7 +166,6 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     refreshUser,
   };
 
-  // Return the provider with our context value
   return (
     <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
   );

@@ -411,6 +411,12 @@ export type Database = {
               similarity: number;
             }[];
           };
+      get_user: {
+        Args: {
+          input_user_id: string;
+        };
+        Returns: Json;
+      };
       gtrgm_compress: {
         Args: {
           "": unknown;

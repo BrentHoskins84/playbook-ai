@@ -1,4 +1,4 @@
-import { DashboardCard } from "@/components/card-wrapper";
+import { CardWrapper } from "@/components/card-wrapper";
 import { DrillsTable } from "@/components/drills/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,12 +20,12 @@ export default async function DrillsPage({ searchParams }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-4">
-      {/* <DashboardCard gradient={1} className="mb-4">
+      {/* <CardWrapper gradient={1} className="mb-4">
         <></>
         {/* <DrillsFilters />
-      </DashboardCard> */}
+      </CardWrapper> */}
 
-      <DashboardCard title="Drills" colSpan={4}>
+      <CardWrapper title="Drills" colSpan={4}>
         <Suspense
           fallback={
             <div className="space-y-4">
@@ -62,7 +62,7 @@ export default async function DrillsPage({ searchParams }: Props) {
           </div>
           <DrillsTable drills={drills} />
         </Suspense>
-      </DashboardCard>
+      </CardWrapper>
     </div>
   );
 }
