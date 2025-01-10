@@ -4,7 +4,7 @@ import { getSchedules } from "@/app/(dashboard)/schedule/actions";
 import { useUser } from "@/context/auth-context";
 import { Tables } from "@/types/supabase";
 import { format, getDay, parse, startOfWeek } from "date-fns";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { CardWrapper } from "../card-wrapper";
@@ -13,7 +13,7 @@ import { CreateScheduleForm } from "./components/create-schedule-form";
 import { PracticeDetailsModal } from "./components/practice-details-modal";
 import { CalendarEvent } from "./types";
 
-// Date localizer setup
+// Move localizer outside component to prevent recreation
 const locales = {
   "en-US": require("date-fns/locale/en-US"),
 };
@@ -26,110 +26,134 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// Main Calendar Component
+const initialModalState = {
+  selectedEvent: null as CalendarEvent | null,
+  showEventDetails: false,
+  selectedDate: null as Date | null,
+  showCreateForm: false,
+};
+
 export default function SchedulerCalendar() {
   const [schedules, setSchedules] = useState<Tables<"practices">[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUser();
+  const { user, loading: isLoading } = useUser();
+  const userId = user?.id;
 
-  // Modal states
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-    null
-  );
-  const [showEventDetails, setShowEventDetails] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [modalState, setModalState] = useState(initialModalState);
 
-  // Fetch schedules
+  // Memoize fetchSchedules to prevent unnecessary re-renders
   const fetchSchedules = useCallback(async () => {
-    console.log("Fetching schedules...");
-    console.log("User:", user);
+    if (!userId) return;
 
-    if (!user) return;
-
-    setIsLoading(true);
     try {
-      const fetchedSchedules = await getSchedules(user.id);
-      console.log("Fetched schedules:", fetchedSchedules);
-
+      const fetchedSchedules = await getSchedules(userId);
       setSchedules(fetchedSchedules);
       setError(null);
     } catch (err) {
       setError("Failed to fetch schedules");
       console.error("Error fetching schedules:", err);
-    } finally {
-      setIsLoading(false);
     }
-  }, [user]);
+  }, [userId]); // Only depend on user.id, not the entire user object
 
   useEffect(() => {
-    fetchSchedules();
-  }, [fetchSchedules]);
+    if (userId) {
+      fetchSchedules();
+    }
+  }, [userId, fetchSchedules]);
 
-  // Event handlers
+  // Memoize event handlers
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setShowEventDetails(true);
+    setModalState((prev) => ({
+      ...prev,
+      selectedEvent: event,
+      showEventDetails: true,
+    }));
   }, []);
 
   const handleSelectSlot = useCallback(({ start }: { start: Date }) => {
-    setSelectedDate(start);
-    setShowCreateForm(true);
+    setModalState((prev) => ({
+      ...prev,
+      selectedDate: start,
+      showCreateForm: true,
+    }));
   }, []);
 
-  // Transform schedules to calendar events
-  const events: CalendarEvent[] = schedules.map((schedule) => ({
-    id: schedule.id,
-    title: schedule.goals || "Practice",
-    start: new Date(schedule.start_time),
-    end: new Date(schedule.end_time),
-    goals: schedule.goals,
-  }));
+  // Memoize events array
+  const events = useMemo(
+    () =>
+      schedules.map((schedule) => ({
+        id: schedule.id,
+        title: schedule.goals || "Practice",
+        start: new Date(schedule.start_time),
+        end: new Date(schedule.end_time),
+        goals: schedule.goals,
+      })),
+    [schedules]
+  );
 
-  return (
-    <CardWrapper>
-      {isLoading ? (
+  const handleCloseEventDetails = useCallback(() => {
+    setModalState((prev) => ({
+      ...prev,
+      showEventDetails: false,
+      selectedEvent: null,
+    }));
+  }, []);
+
+  const handleCloseCreateForm = useCallback(() => {
+    setModalState((prev) => ({
+      ...prev,
+      showCreateForm: false,
+      selectedDate: null,
+    }));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <CardWrapper>
         <div className="h-[calc(100vh-12rem)] justify-center items-center flex">
           <Spinner />
         </div>
-      ) : error ? (
+      </CardWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <CardWrapper>
         <div className="text-center py-4 text-destructive">{error}</div>
-      ) : (
-        <div className="h-[calc(100vh-12rem)] bg-background">
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleSelectSlot}
-            selectable
-            views={["month", "week", "day"]}
-            defaultView="month"
-            className="rounded-lg bg-card text-card-foreground shadow-sm"
-          />
+      </CardWrapper>
+    );
+  }
 
-          <PracticeDetailsModal
-            event={selectedEvent}
-            isOpen={showEventDetails}
-            onClose={() => {
-              setShowEventDetails(false);
-              setSelectedEvent(null);
-            }}
-          />
+  return (
+    <CardWrapper>
+      <div className="h-[calc(100vh-12rem)] bg-background">
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleSelectSlot}
+          selectable
+          views={["month", "week", "day"]}
+          defaultView="month"
+          className="rounded-lg bg-card text-card-foreground shadow-sm"
+        />
 
-          <CreateScheduleForm
-            selectedDate={selectedDate}
-            isOpen={showCreateForm}
-            onCloseAction={() => {
-              setShowCreateForm(false);
-              setSelectedDate(null);
-            }}
-            onScheduleCreatedAction={fetchSchedules}
-          />
-        </div>
-      )}
+        <PracticeDetailsModal
+          event={modalState.selectedEvent}
+          isOpen={modalState.showEventDetails}
+          onClose={handleCloseEventDetails}
+        />
+
+        <CreateScheduleForm
+          selectedDate={modalState.selectedDate}
+          isOpen={modalState.showCreateForm}
+          onCloseAction={handleCloseCreateForm}
+          onScheduleCreatedAction={fetchSchedules}
+        />
+      </div>
     </CardWrapper>
   );
 }
